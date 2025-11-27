@@ -54,6 +54,10 @@
         "Description[zh_TW]": "對 zip 與 7z 壓縮檔格式的完整支援",
         "MimeTypes": [
             "application/x-7z-compressed",
+            "application/octet-stream",
+            "application/x-cpio",
+            "application/vnd.squashfs",
+            "application/vnd.microsoft.portable-executable",
             "application/zip"
         ],
         "Name": "7z plugin",

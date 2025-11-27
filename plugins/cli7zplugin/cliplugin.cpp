@@ -192,7 +192,7 @@ bool CliPlugin::readListLine(const QString &line)
             } else {
                 // Should not happen
                 qCWarning(ARK_LOG) << "Unsupported archive type";
-                return false;
+                m_archiveType = ArchiveTypeGeneric;
             }
 
         } else if (line.startsWith(QLatin1String("Volumes = "))) {

@@ -128,7 +128,7 @@ bool CliPlugin::readListLine(const QString &line)
     static const QLatin1String archiveInfoDelimiter2("----"); // 7z 9.04
     static const QLatin1String entryInfoDelimiter("----------");
 
-    if (line.startsWith(QLatin1String("Open ERROR: Can not open the file as [7z] archive"))) {
+    if (line.startsWith(QLatin1String("Open ERROR: Can not open the file as [7z] archive")) || line.endsWith(QLatin1String("Cannot open the file as archive"))) {
         Q_EMIT error(i18n("Listing the archive failed."));
         return false;
     }

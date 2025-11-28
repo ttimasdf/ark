@@ -222,6 +222,7 @@ bool CliPlugin::readListLine(const QString &line)
         break;
 
     case ParseStateEntryInformation:
+        bool yieldEntry = false;
         if (m_isFirstInformationEntry) {
             m_isFirstInformationEntry = false;
             m_currentArchiveEntry = new Archive::Entry(this);
@@ -270,6 +271,9 @@ bool CliPlugin::readListLine(const QString &line)
 
         } else if (line.startsWith(QLatin1String("CRC = "))) {
             m_currentArchiveEntry->setProperty("CRC", line.mid(6).trimmed());
+            if (m_archiveType == ArchiveTypeGZip)
+                // for gzip, CRC is the last entry
+                yieldEntry = true;
 
         } else if (line.startsWith(QLatin1String("Method = "))) {
             m_currentArchiveEntry->setProperty("method", line.mid(9).trimmed());
@@ -283,7 +287,39 @@ bool CliPlugin::readListLine(const QString &line)
         } else if (line.startsWith(QLatin1String("Encrypted = ")) && line.size() >= 13) {
             m_currentArchiveEntry->setProperty("isPasswordProtected", line.at(12) == QLatin1Char('+'));
 
-        } else if (line.startsWith(QLatin1String("Block = ")) || line.startsWith(QLatin1String("Version = "))) {
+        } else if (line.startsWith(QLatin1String("Mode = "))) {
+            // For vhdx/gz archives
+            const QString attributes = line.mid(7).trimmed();
+            if (attributes.startsWith(QLatin1Char('d'))) {
+                m_currentArchiveEntry->setProperty("isDirectory", true);
+                fixDirectoryFullName();
+            } else if (attributes.startsWith(QLatin1Char('l'))) {
+                m_currentArchiveEntry->setProperty("link", QLatin1String(""));
+            }
+
+            if (attributes.contains(QLatin1Char('_'))) {
+                // Unix attributes
+                m_currentArchiveEntry->setProperty("permissions", attributes.mid(attributes.indexOf(QLatin1Char(' ')) + 1));
+            } else {
+                // FAT attributes
+                m_currentArchiveEntry->setProperty("permissions", attributes);
+            }
+
+        } else if (line.startsWith(QLatin1String("User ID = "))) {
+            // UID/GID for vhdx/squashfs
+            m_currentArchiveEntry->setProperty("owner", line.mid(10).trimmed());
+        } else if (line.startsWith(QLatin1String("Group ID = "))) {
+            m_currentArchiveEntry->setProperty("group", line.mid(11).trimmed());
+            if (m_archiveType != ArchiveTypeGZip)
+                // for vhdx/squashfs, GID is the last entry
+                yieldEntry = true;
+
+        } else if (line.startsWith(QLatin1String("Block = ")) || line.startsWith(QLatin1String("Version = ")) || line.startsWith(QLatin1String("Offset = "))) {
+            // for Cpio/zip, Offset is the last entry
+            yieldEntry = true;
+        }
+
+        if (yieldEntry) {
             m_isFirstInformationEntry = true;
             if (!m_currentArchiveEntry->fullPath().isEmpty()) {
                 Q_EMIT entry(m_currentArchiveEntry);
